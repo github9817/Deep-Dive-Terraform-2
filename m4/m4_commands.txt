@@ -1,0 +1,126 @@
+## First let's try out some terraform state commands
+## Go to the m3 folder and run the state commands
+
+# View all the Terraform resources
+terraform state list
+
+# Now let's look at a specific resource
+terraform state show module.vpc.aws_vpc.this[0]
+
+# We can also view all the state data
+terraform state pull
+
+## Now it's time to deploy our local Consul server node
+## Download the consul executable from https://www.consul.io/downloads
+
+# Go into the consul subfolder in m4
+cd ../m4/consul
+
+# Create a data subdirectory
+mkdir data
+
+# Launch consul server instance
+consul agent -bootstrap -config-file="config/consul-config.hcl" -bind="127.0.0.1"
+
+# Open a separate terminal window to run the rest of the commands
+# Make sure you are back in the m4/consul directory
+cd m4/consul
+
+# Generate the bootstrap token
+consul acl bootstrap
+
+# Set CONSUL_TOKEN to SecretID
+
+# Linux and MacOS
+export CONSUL_HTTP_TOKEN=d9bacee4-b09a-ff83-ea07-a4a3d9432b9b
+
+# Windows
+$env:CONSUL_HTTP_TOKEN="SECRETID_VALUE"
+
+## Now we're going to configure Consul using Terraform 
+# Set up paths, policies, and tokens
+terraform init
+terraform plan -out consul.tfplan
+terraform apply consul.tfplan
+
+# Get token values for Mary and Sally and record them for later
+consul acl token read -id 0050fafa-f616-d9b8-4699-42c4bb1c0f76
+consul acl token read -id bf5597c5-b73c-9167-b5e7-9b24c30fe52c
+
+
+
+
+# Go back to the main m4 folder
+cd ..
+
+## Now let's set up the Consul backend and migrate the state
+
+# Copy the backend.tf file to m3
+cp backend.tf ..\m3\backend.tf
+
+# Move to the m3 folder
+cd ..\m3
+
+# Now let's set the Consul token to Mary Moe
+# Replace SECRETID_VALUE with Mary Moe's secret ID
+# Linux and MacOS
+export CONSUL_HTTP_TOKEN=7c9065e1-4046-2efa-85f5-1a2355e5d29f
+
+# Windows
+$env:CONSUL_HTTP_TOKEN="SECRETID_VALUE"
+
+# Now we can initialize the backend config
+terraform init -backend-config="path=networking/state/globo-primary"
+
+# Change the enable_nat_gateway to true in the resources.tf file
+
+# Now run terraform plan and apply
+terraform plan -out nat.tfplan
+terraform apply nat.tfplan
+
+# Open a second terminal
+# Export the Consul token again
+# Try to run a terraform plan
+terraform plan
+
+## You can stop your Consul instance if you want now, or leave it running
+## for the next module
+
+## We are going to keep using the infrastructure in AWS for m5, so don't destroy it!
+
+
+######################################################################
+$ consul acl bootstrap
+AccessorID:       c5f82bba-02da-1331-fe98-6bacc5ae8a2b     
+SecretID:         d9bacee4-b09a-ff83-ea07-a4a3d9432b9b     
+Description:      Bootstrap Token (Global Management)      
+Local:            false
+Create Time:      2022-02-22 21:38:17.6164535 -0600 CST    
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+
+
+mary_token_accessor_id = "0050fafa-f616-d9b8-4699-42c4bb1c0f76"
+sally_token_accessor_id = "bf5597c5-b73c-9167-b5e7-9b24c30fe52c"
+
+
+212071769@G83MK9Y2E MINGW64 /c/Study/pluralsight/terraform-deep-dive/Deep-Dive-Terraform-2/m4/consul
+$ consul acl token read -id bf5597c5-b73c-9167-b5e7-9b24c30fe52c
+AccessorID:       bf5597c5-b73c-9167-b5e7-9b24c30fe52c
+SecretID:         2a5bb917-d410-f1b3-2302-5738a43eaea2
+Description:      token for Sally Sue
+Local:            false
+Create Time:      2022-02-22 21:44:46.311021 -0600 CST
+Policies:
+   593192bb-c4a3-889c-7e0d-14008163cb61 - applications
+
+
+212071769@G83MK9Y2E MINGW64 /c/Study/pluralsight/terraform-deep-dive/Deep-Dive-Terraform-2/m4/consul
+$ consul acl token read -id 0050fafa-f616-d9b8-4699-42c4bb1c0f76
+AccessorID:       0050fafa-f616-d9b8-4699-42c4bb1c0f76
+SecretID:         7c9065e1-4046-2efa-85f5-1a2355e5d29f
+Description:      token for Mary Moe
+Local:            false
+Create Time:      2022-02-22 21:44:46.3060616 -0600 CST
+Policies:
+   560c9ade-f223-f706-acbc-b2f6bdc052cc - networking

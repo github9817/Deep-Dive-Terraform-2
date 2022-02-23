@@ -1,0 +1,103 @@
+## Make sure consul is still running, if not open a separate terminal
+## Go into m4\consul and fire it back up by running 
+consul agent -bootstrap -config-file="config/consul-config.hcl" -bind="127.0.0.1"
+
+## Go back to first terminal window
+# We are going to create two tokens for Jenkins to use net and app
+# First use the root token
+
+# Linux and MacOS
+export CONSUL_HTTP_TOKEN=d9bacee4-b09a-ff83-ea07-a4a3d9432b9b
+
+# Windows
+$env:CONSUL_HTTP_TOKEN="SECRETID_VALUE"
+
+# Create two tokens (networking and applications)
+consul acl token create -policy-name=networking -description="Jenkins networking"
+consul acl token create -policy-name=applications -description="Jenkins applications"
+
+# Make note of SecretID for later
+
+# Create a Jenkins container
+docker pull jenkins/jenkins:lts
+docker run -p 8080:8080 -p 50000:50000 -d -v jenkins_home:/var/jenkins_home --name jenkins jenkins/jenkins:lts
+docker logs jenkins
+
+#Copy the admin password
+http://127.0.0.1:8080
+
+# Install suggested plugins
+# Create a user
+# Manage jenkins
+# Manage plugins
+# Search for Terraform in Available and install without restart
+# Back to Manage jenkins
+# Global Tool Configuration
+# Add Terraform
+# Name: terraform 
+# Install automatically
+# Version - latest for linux (amd64)
+# Click Save
+
+# Create a new item
+# Name: net-deploy
+# Type pipeline
+# Select poll SCM
+# Definition: Pipeline script from SCM
+# SCM: Git
+# Repo URL: YOUR_REPO_URL or https://github.com/ned1313/Deep-Dive-Terraform.git
+# Script path: m8/networking/Jenkinsfile
+# Uncheck lightweight checkout
+
+# Go to credentials -> global
+# Create a credential of type secret text with ID networking_consul_token and the consul token as the secret
+# Create a credential of type secret text with ID applications_consul_token and the consul token as the secret
+# Create a credential of type secret text with ID aws_access_key and the access key as the secret
+# Create a credential of type secret text with ID aws_secret_access_key and the access secret as the secret
+
+#Run the PowerShell script to get the plugin files
+.\getTerraformPlugin.ps1
+
+#Now we can run a build of the network pipeline
+# First build might fail, but now the parameters will be Available
+
+# Run a new build WITH parameters
+
+# When build is successful create a new pipeline for the application stack
+
+# Create a new item
+# Name: app-deploy
+# Type pipeline
+# Select poll SCM
+# Definition: Pipeline script from SCM
+# SCM: Git
+# Repo URL: YOUR_REPO_URL or https://github.com/ned1313/Deep-Dive-Terraform.git
+# Script path: m8/applications/Jenkinsfile
+# Uncheck lightweight checkout
+
+# First build might fail, but now the parameters will be Available
+
+
+# Then run the build again
+
+
+212071769@G83MK9Y2E MINGW64 /c/Study/pluralsight/terraform-deep-dive/Deep-Dive-Terraform-2/m8
+$ consul acl token create -policy-name=networking -description="Jenkins networking"
+AccessorID:       34e9ca07-ac7f-a54a-1dfd-ca690ca090a5
+SecretID:         a2d02c27-bed9-9789-0b98-f663644fb703
+Description:      Jenkins networking
+Local:            false
+Create Time:      2022-02-22 22:09:58.9726233 -0600 CST
+Policies:
+   560c9ade-f223-f706-acbc-b2f6bdc052cc - networking
+
+
+212071769@G83MK9Y2E MINGW64 /c/Study/pluralsight/terraform-deep-dive/Deep-Dive-Terraform-2/m8
+$ consul acl token create -policy-name=applications -description="Jenkins applications"
+AccessorID:       4882eabe-f6f3-fa34-b65f-5d90ca15c8ac
+SecretID:         d292a708-ff91-b8f4-d63f-94e93ecc70e2
+Description:      Jenkins applications
+Local:            false
+Create Time:      2022-02-22 22:10:02.4848126 -0600 CST
+Policies:
+   593192bb-c4a3-889c-7e0d-14008163cb61 - applications
